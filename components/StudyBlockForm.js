@@ -22,14 +22,26 @@ export default function StudyBlockForm({ onSuccess }) {
                 return
             }
 
-            // FIX: Include user data in the request
+            // FIX: Handle timezone properly - keep it as local time
+            console.log('=== TIMEZONE DEBUG ===')
+            console.log('Form input:', formData.start_time)
+            console.log('Current timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone)
+
+            // Create date object from datetime-local input (this is in local timezone)
+            const localDateTime = new Date(formData.start_time)
+            console.log('Parsed date:', localDateTime)
+            console.log('Display string:', localDateTime.toString())
+
+            // Keep it as local time - don't convert to UTC
             const studyBlockData = {
                 ...formData,
                 user_id: session.user.id,
-                user_email: session.user.email
+                user_email: session.user.email,
+                start_time: formData.start_time // Send the raw datetime-local string
             }
 
-            console.log('Submitting study block:', studyBlockData)
+            console.log('Sending to API:', studyBlockData)
+            console.log('===================')
 
             const response = await fetch('/api/study-blocks', {
                 method: 'POST',
@@ -37,13 +49,19 @@ export default function StudyBlockForm({ onSuccess }) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify(studyBlockData) // Use studyBlockData instead of formData
+                body: JSON.stringify(studyBlockData)
             })
 
             const data = await response.json()
 
             if (response.ok) {
-                setFormData({ title: '', start_time: '', duration: 30 })
+                console.log('✅ Successfully created:', data.studyBlock)
+                // Reset form
+                setFormData({
+                    title: '',
+                    start_time: '',
+                    duration: 30
+                })
                 if (onSuccess) onSuccess()
                 alert('✅ Study session scheduled successfully!')
             } else {
@@ -60,8 +78,25 @@ export default function StudyBlockForm({ onSuccess }) {
 
     const getCurrentDateTime = () => {
         const now = new Date()
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-        return now.toISOString().slice(0, 16)
+        // Get local datetime string for datetime-local input
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const hours = String(now.getHours()).padStart(2, '0')
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+
+    // Debug function to test time handling
+    const debugTime = () => {
+        console.log('=== TIME DEBUG ===')
+        console.log('Form start_time:', formData.start_time)
+        console.log('As Date object:', new Date(formData.start_time))
+        console.log('Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone)
+        console.log('Local time now:', new Date().toString())
+        console.log('getCurrentDateTime():', getCurrentDateTime())
+        console.log('==================')
     }
 
     return (
@@ -101,7 +136,10 @@ export default function StudyBlockForm({ onSuccess }) {
                         <input
                             type="datetime-local"
                             value={formData.start_time}
-                            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                            onChange={(e) => {
+                                console.log('Time input changed:', e.target.value)
+                                setFormData({ ...formData, start_time: e.target.value })
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             min={getCurrentDateTime()}
                             required
@@ -137,6 +175,23 @@ export default function StudyBlockForm({ onSuccess }) {
                             <p>You will receive an email 10 minutes before your session starts</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Debug section - remove in production */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <button
+                        type="button"
+                        onClick={debugTime}
+                        className="text-yellow-800 text-sm underline"
+                    >
+                        🐛 Debug Time (click to see console logs)
+                    </button>
+                    {formData.start_time && (
+                        <div className="mt-2 text-xs text-yellow-700">
+                            <p>Input value: {formData.start_time}</p>
+                            <p>Parsed: {new Date(formData.start_time).toString()}</p>
+                        </div>
+                    )}
                 </div>
 
                 <button
