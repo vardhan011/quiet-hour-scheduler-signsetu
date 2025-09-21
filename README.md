@@ -1,4 +1,4 @@
-# Quiet Hours Scheduler - SignSetu Assignment
+# Quiet Hours Scheduler 
 
 A full-stack Next.js application that helps students schedule focused study time with automated email reminders.
 
