@@ -123,7 +123,7 @@ export default function StudyBlocksList({ refreshTrigger }) {
         )
     }
 
-    // FIXED: Get dynamic message for each block with correct reminder time calculation
+    // Get dynamic message for each block with correct reminder time calculation
     const getStatusMessage = (block) => {
         const now = new Date()
         const sessionTime = new Date(block.start_time)
@@ -252,7 +252,7 @@ export default function StudyBlocksList({ refreshTrigger }) {
                                                 <p className="text-sm">
                                                     {timeInfo.text}
                                                 </p>
-                                                {/* Fixed status message with correct reminder time */}
+                                                {/* Status message with correct reminder time */}
                                                 <p className={`text-xs italic ${block.reminder_sent ? 'text-green-600' :
                                                     minutesUntil >= 9 && minutesUntil <= 11 ? 'text-yellow-600' :
                                                         timeInfo.isImmediate ? 'text-red-600' : 'text-gray-500'
