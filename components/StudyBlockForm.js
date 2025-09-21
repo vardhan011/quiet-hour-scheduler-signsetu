@@ -117,7 +117,7 @@ export default function StudyBlockForm({ onSuccess }) {
                         </svg>
                         <div className="text-sm text-blue-800">
                             <p className="font-medium">📧 Email Reminder</p>
-                            <p>You'll receive an email 10 minutes before your session starts</p>
+                            <p>You will receive an email 10 minutes before your session starts</p>
                         </div>
                     </div>
                 </div>

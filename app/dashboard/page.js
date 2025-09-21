@@ -65,7 +65,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900">Email Reminders Active</h3>
-                                <p className="text-gray-600">You'll get notified 10 minutes before each study session</p>
+                                <p className="text-gray-600">You will get notified 10 minutes before each study session</p>
                             </div>
                             <div className="ml-auto">
                                 <span className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1 rounded-full">
