@@ -1,85 +1,87 @@
 import { NextResponse } from 'next/server'
 import clientPromise from '../../../lib/mongodb'
-import { supabase } from '../../../lib/supabase'
 
 export async function GET(request) {
     try {
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader) {
-            return NextResponse.json({ error: 'No auth header' }, { status: 401 })
-        }
-
-        const token = authHeader.replace('Bearer ', '')
-        const { data: { user }, error } = await supabase.auth.getUser(token)
-
-        if (error || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        console.log('GET /api/study-blocks: Starting...')
 
         const client = await clientPromise
+
+        if (!client) {
+            console.error('GET /api/study-blocks: Database client is null')
+            return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+        }
+
         const db = client.db("quiet_hours")
 
-        const studyBlocks = await db
-            .collection("study_blocks")
-            .find({ user_id: user.id })
-            .sort({ start_time: 1 })
-            .toArray()
+        const { searchParams } = new URL(request.url)
+        const userId = searchParams.get('userId')
 
-        return NextResponse.json({ studyBlocks })
+        if (!userId) {
+            return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+        }
+
+        const studyBlocks = await db.collection("study_blocks").find({
+            user_id: userId
+        }).sort({ start_time: 1 }).toArray()
+
+        console.log(`GET /api/study-blocks: Found ${studyBlocks.length} blocks`)
+
+        return NextResponse.json({
+            success: true,
+            studyBlocks: studyBlocks
+        })
+
     } catch (error) {
         console.error('GET /api/study-blocks error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        )
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to fetch study blocks: ' + error.message
+        }, { status: 500 })
     }
 }
 
 export async function POST(request) {
     try {
-        const body = await request.json()
-        const { title, start_time, duration } = body
-
-        if (!title || !start_time || !duration) {
-            return NextResponse.json(
-                { error: 'Title, start_time, and duration are required' },
-                { status: 400 }
-            )
-        }
-
-        const authHeader = request.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
-        const { data: { user }, error } = await supabase.auth.getUser(token)
-
-        if (error || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        console.log('POST /api/study-blocks: Starting...')
 
         const client = await clientPromise
+
+        if (!client) {
+            console.error('POST /api/study-blocks: Database client is null')
+            return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+        }
+
         const db = client.db("quiet_hours")
+        const body = await request.json()
+
+        console.log('POST /api/study-blocks: Received data:', body)
 
         const studyBlock = {
-            user_id: user.id,
-            user_email: user.email,
-            title,
-            start_time: new Date(start_time),
-            duration: parseInt(duration),
-            created_at: new Date(),
-            reminder_sent: false
+            user_id: body.user_id,
+            user_email: body.user_email,
+            title: body.title,
+            start_time: new Date(body.start_time),
+            duration: parseInt(body.duration),
+            reminder_sent: false,
+            created_at: new Date()
         }
 
         const result = await db.collection("study_blocks").insertOne(studyBlock)
 
+        console.log('POST /api/study-blocks: Created block with ID:', result.insertedId)
+
         return NextResponse.json({
             success: true,
             id: result.insertedId,
-            studyBlock
+            studyBlock: { ...studyBlock, _id: result.insertedId }
         })
+
     } catch (error) {
         console.error('POST /api/study-blocks error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        )
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to create study block: ' + error.message
+        }, { status: 500 })
     }
 }
