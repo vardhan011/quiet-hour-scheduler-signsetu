@@ -24,7 +24,7 @@ export default function StudyBlocksList({ refreshTrigger }) {
                 return
             }
 
-            // FIX: Add userId parameter to the URL
+            // Include userId parameter in the URL
             const response = await fetch(`/api/study-blocks?userId=${session.user.id}`, {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
@@ -123,28 +123,52 @@ export default function StudyBlocksList({ refreshTrigger }) {
         )
     }
 
-    // Get dynamic message for each block
+    // FIXED: Get dynamic message for each block with correct reminder time calculation
     const getStatusMessage = (block) => {
         const now = new Date()
         const sessionTime = new Date(block.start_time)
         const minutesUntil = Math.floor((sessionTime - now) / (1000 * 60))
 
+        // Session is over
         if (minutesUntil < 0) return 'Session completed'
 
+        // Email already sent
         if (block.reminder_sent) {
             const sentAt = new Date(block.reminder_sent_at)
             return `Email sent at ${sentAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
         }
 
+        // Currently sending email (9-11 minutes before)
         if (minutesUntil >= 9 && minutesUntil <= 11) {
             return 'Email reminder being sent now...'
         }
 
-        if (minutesUntil <= 5) {
-            return 'Get ready! Session starting very soon!'
+        // Very close to start (0-10 minutes)
+        if (minutesUntil <= 10) {
+            if (minutesUntil <= 1) return 'Starting any moment now!'
+            if (minutesUntil <= 5) return 'Get ready! Starting very soon!'
+            return 'Email reminder due any moment'
         }
 
-        return `Email reminder in ${minutesUntil - 10} minutes`
+        // Future session - calculate when reminder will be sent (10 minutes before session)
+        const reminderTime = minutesUntil - 10
+
+        if (reminderTime <= 0) {
+            return 'Email reminder overdue'
+        } else if (reminderTime === 1) {
+            return 'Email reminder in 1 minute'
+        } else if (reminderTime <= 60) {
+            return `Email reminder in ${reminderTime} minutes`
+        } else {
+            // For longer times, show hours and minutes
+            const hours = Math.floor(reminderTime / 60)
+            const mins = reminderTime % 60
+            if (mins === 0) {
+                return `Email reminder in ${hours} hour${hours > 1 ? 's' : ''}`
+            } else {
+                return `Email reminder in ${hours}h ${mins}m`
+            }
+        }
     }
 
     if (loading) {
@@ -228,7 +252,7 @@ export default function StudyBlocksList({ refreshTrigger }) {
                                                 <p className="text-sm">
                                                     {timeInfo.text}
                                                 </p>
-                                                {/* Dynamic status message */}
+                                                {/* Fixed status message with correct reminder time */}
                                                 <p className={`text-xs italic ${block.reminder_sent ? 'text-green-600' :
                                                     minutesUntil >= 9 && minutesUntil <= 11 ? 'text-yellow-600' :
                                                         timeInfo.isImmediate ? 'text-red-600' : 'text-gray-500'
