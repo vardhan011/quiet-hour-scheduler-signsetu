@@ -18,7 +18,14 @@ export default function StudyBlocksList({ refreshTrigger }) {
         try {
             const { data: { session } } = await supabase.auth.getSession()
 
-            const response = await fetch('/api/study-blocks', {
+            if (!session?.user?.id) {
+                console.error('No user session found')
+                setStudyBlocks([])
+                return
+            }
+
+            // FIX: Add userId parameter to the URL
+            const response = await fetch(`/api/study-blocks?userId=${session.user.id}`, {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
@@ -27,10 +34,14 @@ export default function StudyBlocksList({ refreshTrigger }) {
             const data = await response.json()
 
             if (response.ok) {
-                setStudyBlocks(data.studyBlocks)
+                setStudyBlocks(data.studyBlocks || [])
+            } else {
+                console.error('Failed to fetch study blocks:', data.error)
+                setStudyBlocks([])
             }
         } catch (error) {
             console.error('Error fetching study blocks:', error)
+            setStudyBlocks([])
         } finally {
             setLoading(false)
         }
@@ -201,9 +212,9 @@ export default function StudyBlocksList({ refreshTrigger }) {
                                     <div className="flex items-start space-x-4">
                                         {/* Dynamic status dot */}
                                         <div className={`w-3 h-3 rounded-full mt-2 flex-shrink-0 ${timeInfo.isPast ? 'bg-gray-300' :
-                                                block.reminder_sent ? 'bg-green-400 animate-pulse' :
-                                                    minutesUntil >= 9 && minutesUntil <= 11 ? 'bg-yellow-400 animate-bounce' :
-                                                        timeInfo.isImmediate ? 'bg-red-400 animate-pulse' : 'bg-blue-400'
+                                            block.reminder_sent ? 'bg-green-400 animate-pulse' :
+                                                minutesUntil >= 9 && minutesUntil <= 11 ? 'bg-yellow-400 animate-bounce' :
+                                                    timeInfo.isImmediate ? 'bg-red-400 animate-pulse' : 'bg-blue-400'
                                             }`}></div>
 
                                         <div className="flex-1">
@@ -219,8 +230,8 @@ export default function StudyBlocksList({ refreshTrigger }) {
                                                 </p>
                                                 {/* Dynamic status message */}
                                                 <p className={`text-xs italic ${block.reminder_sent ? 'text-green-600' :
-                                                        minutesUntil >= 9 && minutesUntil <= 11 ? 'text-yellow-600' :
-                                                            timeInfo.isImmediate ? 'text-red-600' : 'text-gray-500'
+                                                    minutesUntil >= 9 && minutesUntil <= 11 ? 'text-yellow-600' :
+                                                        timeInfo.isImmediate ? 'text-red-600' : 'text-gray-500'
                                                     }`}>
                                                     {getStatusMessage(block)}
                                                 </p>

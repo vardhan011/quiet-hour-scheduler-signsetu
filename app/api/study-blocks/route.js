@@ -17,15 +17,21 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url)
         const userId = searchParams.get('userId')
 
+        console.log('GET /api/study-blocks: userId =', userId)
+
         if (!userId) {
-            return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+            console.error('GET /api/study-blocks: Missing userId parameter')
+            return NextResponse.json({
+                error: 'User ID is required',
+                debug: 'Make sure to include ?userId=<user_id> in the URL'
+            }, { status: 400 })
         }
 
         const studyBlocks = await db.collection("study_blocks").find({
             user_id: userId
         }).sort({ start_time: 1 }).toArray()
 
-        console.log(`GET /api/study-blocks: Found ${studyBlocks.length} blocks`)
+        console.log(`GET /api/study-blocks: Found ${studyBlocks.length} blocks for user ${userId}`)
 
         return NextResponse.json({
             success: true,
@@ -56,6 +62,13 @@ export async function POST(request) {
         const body = await request.json()
 
         console.log('POST /api/study-blocks: Received data:', body)
+
+        // Validate required fields
+        if (!body.user_id || !body.user_email || !body.title || !body.start_time) {
+            return NextResponse.json({
+                error: 'Missing required fields: user_id, user_email, title, start_time'
+            }, { status: 400 })
+        }
 
         const studyBlock = {
             user_id: body.user_id,

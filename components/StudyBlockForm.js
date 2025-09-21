@@ -17,13 +17,27 @@ export default function StudyBlockForm({ onSuccess }) {
         try {
             const { data: { session } } = await supabase.auth.getSession()
 
+            if (!session?.user) {
+                alert('Please log in to create study blocks')
+                return
+            }
+
+            // FIX: Include user data in the request
+            const studyBlockData = {
+                ...formData,
+                user_id: session.user.id,
+                user_email: session.user.email
+            }
+
+            console.log('Submitting study block:', studyBlockData)
+
             const response = await fetch('/api/study-blocks', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(studyBlockData) // Use studyBlockData instead of formData
             })
 
             const data = await response.json()
@@ -31,11 +45,14 @@ export default function StudyBlockForm({ onSuccess }) {
             if (response.ok) {
                 setFormData({ title: '', start_time: '', duration: 30 })
                 if (onSuccess) onSuccess()
+                alert('✅ Study session scheduled successfully!')
             } else {
                 alert('Error: ' + data.error)
+                console.error('API Error:', data)
             }
         } catch (error) {
             alert('Error: ' + error.message)
+            console.error('Request Error:', error)
         } finally {
             setLoading(false)
         }
